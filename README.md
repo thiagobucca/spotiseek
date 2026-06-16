@@ -212,17 +212,6 @@ PUBLIC_USE_MOCKS=true npm run dev:web
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] CI (GitHub Actions) publishing a multi-arch image to GHCR
-- [ ] "Import all my playlists" (discovery via Spotify account)
-- [ ] Playable track list inside the Library + "play album"
-- [ ] Notifications (ntfy/Discord) on failures
-- [ ] Automatic quality upgrade (re-download FLAC when it appears)
-- [ ] Prometheus metrics (optional)
-
----
-
 ## 📄 License
 
 Personal use. See the [legal notice](#️-legal-notice). Set the repository license as you prefer.
