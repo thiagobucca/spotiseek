@@ -1,0 +1,86 @@
+# Spotiseek — stack ULTRALIGHT (2 containers).
+#
+#   app   : NestJS (API + Workers + fila durável embarcada + UI estática) + SQLite em /data.
+#   slskd : cliente Soulseek headless (REST API), com a pasta de downloads compartilhada.
+#
+# SEM Postgres, SEM Redis. Toda a persistência da app é um único arquivo SQLite em /data,
+# e a fila de jobs é durável embarcada (na própria SQLite). Teto de memória ~960M — folga
+# enorme num Raspberry Pi 4 de 4GB.
+#
+#   cp .env.example .env   # preencha as credenciais
+#   docker compose up -d
+#   # UI em http://<host>:8080
+name: spotiseek
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: spotiseek:latest
+    restart: unless-stopped
+    depends_on:
+      - slskd
+    env_file:
+      - .env
+    environment:
+      # SQLite — único arquivo, no volume app-data.
+      DATABASE_URL: file:/data/spotiseek.db
+      JWT_SECRET: ${JWT_SECRET}
+      APP_SECRET: ${APP_SECRET}                 # cifra tokens OAuth em repouso
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI}
+      SLSKD_URL: http://slskd:5030
+      SLSKD_API_KEY: ${SLSKD_API_KEY}
+      LIBRARY_PATH: /music
+      DOWNLOADS_PATH: /downloads
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      # Biblioteca final (organizada) — aponte MUSIC_PATH no .env para onde quiser guardar.
+      # Ex. no Raspberry: MUSIC_PATH=/home/pi/airdisk/Airdisk/Music
+      - ${MUSIC_PATH:-./music}:/music
+      # Staging dos downloads (o slskd grava aqui; o app organiza p/ /music). Use o MESMO
+      # drive que MUSIC_PATH p/ a organização ser um "rename" rápido (sem copiar entre discos).
+      - ${STAGING_PATH:-./downloads}:/downloads
+      - app-data:/data                          # SQLite + estado da app
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s                         # dá tempo p/ migrations no boot
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+
+  slskd:
+    image: slskd/slskd:latest                   # multi-arch oficial (amd64/arm64/arm-v7)
+    restart: unless-stopped
+    environment:
+      # Config fica no slskd.yml; credenciais e API key vêm do .env via interpolação.
+      SLSKD_REMOTE_CONFIGURATION: "false"
+      SLSKD_SLSK_USERNAME: ${SOULSEEK_USERNAME}
+      SLSKD_SLSK_PASSWORD: ${SOULSEEK_PASSWORD}
+      SLSKD_API_KEY: ${SLSKD_API_KEY}
+    volumes:
+      - ./docker/slskd.yml:/app/slskd.yml:ro
+      - ${STAGING_PATH:-./downloads}:/downloads # mesma pasta de staging que o app lê
+      - slskd-incomplete:/incomplete             # parciais — mount point sempre existe
+      - slskd-data:/app/data
+    ports:
+      - "50300:50300"                            # porta de escuta P2P (uploads/ratio)
+      # 5030 (REST) fica só na rede interna do compose; o app fala via http://slskd:5030.
+    deploy:
+      resources:
+        limits:
+          memory: 320M
+
+volumes:
+  app-data: # SQLite + estado da app (não precisa de bind; fica no volume Docker)
+  slskd-data:
+  slskd-incomplete:

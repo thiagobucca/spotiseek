@@ -1,0 +1,36 @@
+# Contexto de build do Docker — exclui o que é pesado, gerado ou secreto.
+# (O Dockerfile faz `npm ci` e builda tudo dentro da imagem.)
+
+# dependências e artefatos (rebuildados na imagem)
+node_modules
+**/node_modules
+dist
+**/dist
+build
+**/build
+.svelte-kit
+**/.svelte-kit
+*.tsbuildinfo
+
+# segredos e ambiente local — NUNCA entram na imagem (PUBLIC_USE_MOCKS é fixado no Dockerfile)
+.env
+**/.env
+.env.local
+**/.env.local
+
+# dados locais / mídia (bind mounts em runtime)
+data
+music
+downloads
+*.db
+*.sqlite
+*.sqlite-journal
+
+# não precisam na imagem
+.git
+.gitignore
+docs
+prototype
+*.md
+.claude
+.DS_Store

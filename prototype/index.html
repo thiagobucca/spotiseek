@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spotiseek</title>
+<style>
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --surface-2:#fbfbfd; --surface-3:#f0f0f3;
+  --text:#1d1d1f; --text-2:#6e6e73; --text-3:#a1a1a6; --text-4:#c7c7cc;
+  --hair:rgba(0,0,0,.08); --hair-2:rgba(0,0,0,.05);
+  --blue:#0071e3; --blue-tint:rgba(0,113,227,.10);
+  --green:#30b352; --orange:#f08400; --red:#ff453a; --purple:#8a5cf6;
+  --r:20px; --r-md:14px; --r-sm:10px;
+  --sh-1:0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.03);
+  --sh-2:0 2px 8px rgba(0,0,0,.05), 0 12px 28px -10px rgba(0,0,0,.10);
+  --font:-apple-system,"SF Pro Display","SF Pro Text",system-ui,"Segoe UI",sans-serif;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;overflow:hidden;letter-spacing:-.011em}
+.num{font-variant-numeric:tabular-nums;letter-spacing:0}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.16);border-radius:9px;border:2px solid transparent;background-clip:padding-box}
+::selection{background:var(--blue-tint)}
+
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
+
+/* ---------- sidebar ---------- */
+.rail{background:rgba(250,250,252,.7);backdrop-filter:saturate(180%) blur(20px);
+  border-right:1px solid var(--hair);display:flex;flex-direction:column;padding:18px 12px}
+.brand{display:flex;align-items:center;gap:11px;padding:8px 10px 18px}
+.brand .mark{width:30px;height:30px;border-radius:8px;flex:none;
+  background:linear-gradient(135deg,#0a84ff,#0058c9);display:grid;place-items:center;
+  box-shadow:0 4px 10px -2px rgba(10,132,255,.5)}
+.brand .mark svg{width:17px;height:17px;color:#fff}
+.brand h1{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.sect{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.02em;padding:16px 12px 6px}
+.nav{display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:var(--r-sm);color:var(--text-2);
+  cursor:pointer;font-weight:500;font-size:13.5px;transition:.15s;margin:1px 0}
+.nav svg{width:18px;height:18px;flex:none}
+.nav:hover{background:rgba(0,0,0,.04);color:var(--text)}
+.nav.active{background:var(--blue-tint);color:var(--blue)}
+.nav .badge{margin-left:auto;font-size:11px;font-weight:600;color:var(--text-3)}
+.nav.active .badge{color:var(--blue)}
+.rail-foot{margin-top:auto;padding:10px}
+.rail-foot .st{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2);padding:5px 4px}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dot.ok{background:var(--green)} .dot.off{background:var(--text-4)} .dot.warn{background:var(--orange)}
+.rail-foot .st .v{margin-left:auto;color:var(--text-3);font-size:11.5px}
+
+/* ---------- main ---------- */
+.main{overflow-y:auto;overflow-x:hidden}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:16px;padding:20px 36px 16px;
+  background:rgba(245,245,247,.72);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair-2)}
+.title{font-size:26px;font-weight:700;letter-spacing:-.03em}
+.title small{font-size:13px;font-weight:400;color:var(--text-2);margin-left:11px;letter-spacing:-.01em}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.05);border-radius:10px;
+  padding:8px 12px;width:220px;transition:.2s;color:var(--text-3)}
+.search:focus-within{background:#fff;box-shadow:0 0 0 4px var(--blue-tint),inset 0 0 0 1px var(--blue);width:260px;color:var(--text)}
+.search svg{width:15px;height:15px;flex:none}
+.search input{background:none;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:13.5px;width:100%}
+.search input::placeholder{color:var(--text-3)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;font-family:var(--font);
+  font-weight:500;font-size:13.5px;cursor:pointer;border:none;transition:.15s;white-space:nowrap}
+.btn svg{width:15px;height:15px}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#0077ed}
+.btn-blue:active{transform:scale(.97)}
+.btn-soft{background:rgba(0,0,0,.05);color:var(--text)}
+.btn-soft:hover{background:rgba(0,0,0,.08)}
+
+.screen{display:none;padding:26px 36px 64px;animation:fade .4s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.reveal{animation:rise .5s cubic-bezier(.22,.7,.25,1) backwards}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+.sect-h{display:flex;align-items:baseline;gap:12px;margin:32px 0 16px}
+.sect-h:first-child{margin-top:4px}
+.sect-h h2{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.sect-h .meta{margin-left:auto;font-size:12.5px;color:var(--text-3)}
+.sect-h .link{margin-left:auto;font-size:13px;color:var(--blue);cursor:pointer;font-weight:500}
+
+/* ---------- cover ---------- */
+.cover{position:relative;overflow:hidden;flex:none;background-size:cover;background-position:center;
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.10);transition:transform .3s}
+.cover .ini{position:absolute;inset:0;display:grid;place-items:center;font-weight:600;color:rgba(255,255,255,.92);
+  text-shadow:0 1px 4px rgba(0,0,0,.25)}
+.cover.loaded .ini{opacity:0}
+
+/* ---------- stat cards ---------- */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:16px}
+.stat{background:var(--surface);border-radius:var(--r);padding:20px;box-shadow:var(--sh-1);transition:.25s}
+.stat:hover{box-shadow:var(--sh-2);transform:translateY(-2px)}
+.stat .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;margin-bottom:16px;color:#fff}
+.stat .ic svg{width:16px;height:16px}
+.stat .val{font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.stat .val .u{font-size:15px;font-weight:500;color:var(--text-3);margin-left:3px}
+.stat .lbl{color:var(--text-2);font-size:13px;margin-top:6px}
+
+.two-col{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:start;margin-top:26px}
+@media(max-width:1080px){.two-col{grid-template-columns:1fr}}
+.panel{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-1);overflow:hidden}
+.panel-h{display:flex;align-items:center;gap:10px;padding:16px 18px 14px}
+.panel-h h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.panel-h .cnt{font-size:12.5px;color:var(--text-3)}
+.panel-h .link{margin-left:auto;font-size:13px;color:var(--blue);cursor:pointer;font-weight:500}
+.panel-body{padding:4px 8px 10px}
+
+/* download row */
+.dl{display:grid;grid-template-columns:46px 1fr auto;gap:13px;align-items:center;padding:9px 10px;border-radius:var(--r-sm);transition:.15s}
+.dl:hover{background:rgba(0,0,0,.025)}
+.dl .meta{min-width:0}
+.dl .t{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.dl .a{color:var(--text-2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog-wrap{margin-top:8px;display:flex;align-items:center;gap:10px}
+.prog{flex:1;height:5px;background:rgba(0,0,0,.08);border-radius:5px;overflow:hidden}
+.prog i{display:block;height:100%;border-radius:5px;background:var(--blue);transition:width .9s linear}
+.prog.green i{background:var(--green)}
+.spd{font-size:11.5px;color:var(--text-2);white-space:nowrap;min-width:62px;text-align:right}
+.dl .right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.qbadge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:6px;letter-spacing:0;white-space:nowrap}
+.q-flac{background:rgba(48,179,82,.13);color:#1d8a3c}
+.q-320{background:rgba(0,113,227,.11);color:var(--blue)}
+.q-v0{background:rgba(138,92,246,.12);color:#7041e0}
+.prov{font-size:11px;color:var(--text-3)}
+
+/* activity */
+.feed{padding:6px 4px}
+.act{display:flex;gap:12px;padding:9px 12px}
+.act .ad{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none}
+.act .txt{font-size:13px;color:var(--text-2)}
+.act .txt b{color:var(--text);font-weight:600}
+.act .tm{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* storage bar */
+.storage{padding:18px}
+.bar{height:12px;border-radius:8px;overflow:hidden;display:flex;background:var(--surface-3)}
+.bar span{height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+.legend .l{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2)}
+.legend .l b{color:var(--text);font-weight:600;margin-left:2px}
+.legend .sw{width:9px;height:9px;border-radius:3px}
+
+/* ---------- cards grid (playlists / albums) ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:22px}
+.tile{cursor:pointer;transition:.2s}
+.tile:hover .cover{transform:translateY(-4px);box-shadow:var(--sh-2),inset 0 0 0 .5px rgba(0,0,0,.1)}
+.tile .cover{width:100%;aspect-ratio:1;border-radius:var(--r-md);margin-bottom:11px}
+.tile .pill{position:absolute;top:9px;right:9px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(8px);display:flex;align-items:center;gap:5px;color:var(--text)}
+.tile .nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.tile .info{display:flex;justify-content:space-between;margin-top:3px;color:var(--text-2);font-size:12px}
+.tile .info .sync{color:var(--text-3);font-size:11.5px}
+.minibar{height:3px;background:rgba(0,0,0,.07);border-radius:3px;margin-top:10px;overflow:hidden}
+.minibar i{display:block;height:100%;background:var(--blue);border-radius:3px}
+
+/* import strip */
+.import{display:flex;gap:14px;background:var(--surface);border-radius:var(--r);padding:18px 20px;align-items:center;
+  box-shadow:var(--sh-1);margin-bottom:8px}
+.import .ic{width:40px;height:40px;border-radius:11px;background:var(--blue-tint);color:var(--blue);display:grid;place-items:center;flex:none}
+.import .ic svg{width:20px;height:20px}
+.import .txt{flex:1}
+.import .txt .h{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.import .txt .d{color:var(--text-2);font-size:12.5px;margin-top:1px}
+.input{background:var(--surface-3);border:none;border-radius:10px;padding:10px 14px;color:var(--text);
+  font-family:var(--font);font-size:13.5px;outline:none;transition:.2s}
+.input:focus{box-shadow:0 0 0 4px var(--blue-tint),inset 0 0 0 1px var(--blue);background:#fff}
+.input::placeholder{color:var(--text-3)}
+
+/* ---------- track list ---------- */
+.tlist{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-1);overflow:hidden}
+.trow{display:grid;grid-template-columns:28px 40px 1fr 128px 84px 116px;gap:14px;align-items:center;
+  padding:10px 18px;border-top:1px solid var(--hair-2);font-size:13.5px;transition:.12s}
+.trow:hover{background:rgba(0,0,0,.022)}
+.trow.head{border-top:none;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--text-3);padding:13px 18px}
+.trow .idx{color:var(--text-3);font-size:13px}
+.trow .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.trow .ar{color:var(--text-2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .dur{font-size:12.5px;color:var(--text-2);text-align:right}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500}
+.st .d{width:7px;height:7px;border-radius:50%;flex:none}
+.st-done{color:var(--green)} .st-done .d{background:var(--green)}
+.st-dl{color:var(--blue)} .st-dl .d{background:var(--blue);animation:pulse 1.4s infinite}
+.st-want{color:var(--text-3)} .st-want .d{background:var(--text-4)}
+.st-fail{color:var(--red)} .st-fail .d{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.score{font-size:12px;color:var(--text-3)}
+.score b{color:var(--text-2)}
+
+/* detail header */
+.dhead{display:flex;gap:24px;align-items:flex-end;margin-bottom:26px}
+.dhead .cover{width:150px;height:150px;border-radius:18px;box-shadow:var(--sh-2)}
+.dhead .kicker{font-size:11.5px;font-weight:600;letter-spacing:.03em;color:var(--text-3);text-transform:uppercase}
+.dhead .h{font-size:34px;font-weight:700;letter-spacing:-.03em;margin:7px 0 4px}
+.dhead .sub{color:var(--text-2);font-size:13.5px}
+.dhead .actions{display:flex;gap:10px;margin-top:18px}
+
+/* ---------- library artists ---------- */
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:24px}
+.artist{cursor:pointer;text-align:center;transition:.2s}
+.artist:hover .cover{transform:translateY(-4px);box-shadow:var(--sh-2)}
+.artist .cover{width:100%;aspect-ratio:1;border-radius:50%;margin-bottom:12px}
+.artist .nm{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.artist .ct{color:var(--text-3);font-size:11.5px;margin-top:2px}
+
+/* ---------- wishlist ---------- */
+.wish-form{display:flex;gap:10px;flex-wrap:wrap;background:var(--surface);border-radius:var(--r);padding:16px;box-shadow:var(--sh-1);margin-bottom:8px}
+.seg{display:flex;background:var(--surface-3);border-radius:10px;padding:2px;gap:1px}
+.seg button{background:none;border:none;color:var(--text-2);font-family:var(--font);font-weight:500;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;transition:.15s}
+.seg button.on{background:#fff;color:var(--text);box-shadow:var(--sh-1)}
+.wish-list{display:flex;flex-direction:column;gap:10px}
+.witem{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:var(--r-md);padding:12px 16px;box-shadow:var(--sh-1)}
+.witem .cover{width:40px;height:40px;border-radius:9px}
+.wtype{font-size:10.5px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--surface-3);color:var(--text-2);flex:none}
+.witem .q{flex:1;font-weight:600;letter-spacing:-.01em}
+.witem .stt{font-size:12px;color:var(--text-3)}
+
+/* ---------- settings ---------- */
+.set-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media(max-width:980px){.set-grid{grid-template-columns:1fr}}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair-2)}
+.set-row:first-child{border-top:none}
+.set-row .k{font-weight:600;font-size:13.5px;letter-spacing:-.01em}
+.set-row .k small{display:block;color:var(--text-2);font-weight:400;font-size:12px;margin-top:2px}
+.toggle{width:44px;height:26px;border-radius:20px;background:#e3e3e8;position:relative;cursor:pointer;transition:.25s;flex:none}
+.toggle i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2);transition:.25s}
+.toggle.on{background:var(--green)} .toggle.on i{left:20px}
+.select{background:var(--surface-3);border:none;border-radius:9px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:13px;cursor:pointer;font-weight:500}
+.prio{display:flex;flex-direction:column;gap:8px}
+.prio .p{display:flex;align-items:center;gap:11px;background:var(--surface-3);border-radius:10px;padding:11px 13px;font-weight:500}
+.prio .p .num{font-size:12px;color:var(--text-3);width:14px;text-align:center}
+.prio .p .gr{margin-left:auto;color:var(--text-4);cursor:grab}
+.qchain{display:flex;flex-wrap:wrap;gap:7px;padding:10px 0}
+.qchain .qc{font-size:12px;font-weight:500;padding:6px 11px;border-radius:8px;background:var(--surface-3);display:flex;align-items:center;gap:7px}
+.qchain .qc .n{color:var(--text-3)}
+.spotify-card{display:flex;align-items:center;gap:16px;background:var(--surface);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh-1);margin-bottom:18px}
+.spotify-card .logo{width:46px;height:46px;border-radius:50%;background:#1db954;display:grid;place-items:center;flex:none}
+.spotify-card .logo svg{width:30px;height:30px;color:#fff}
+.spotify-card .info{flex:1}
+.spotify-card .info .h{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.spotify-card .info .d{color:var(--text-2);font-size:12.5px;margin-top:2px}
+.spotify-card .info .d .u{color:var(--green);font-weight:600}
+
+/* live log */
+.log{padding:16px 18px;font-family:var(--mono);font-size:11.5px;line-height:1.85;color:var(--text-2);
+  background:var(--surface-2);border-radius:var(--r);box-shadow:var(--sh-1)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v13.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="8" cy="17" r="3.4" fill="#fff"/><path d="M12 5.5c4 0 6 1.4 7 2.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+      <h1>Spotiseek</h1>
+    </div>
+
+    <div class="sect">Painel</div>
+    <div class="nav active" data-screen="dashboard" data-title="Visão geral" data-sub="o estado da sua operação">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Visão geral</div>
+    <div class="nav" data-screen="playlists" data-title="Playlists" data-sub="sincronizadas do Spotify">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h11M4 17h7" stroke-linecap="round"/><circle cx="18" cy="16" r="2.6"/><path d="M20.6 16V9.5l-2.6.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Playlists<span class="badge">6</span></div>
+    <div class="nav" data-screen="downloads" data-title="Downloads" data-sub="transferências em tempo real">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5v11m0 0l-3.5-3.5M12 14.5l3.5-3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 20h15" stroke-linecap="round"/></svg>Downloads<span class="badge">3</span></div>
+    <div class="nav" data-screen="library" data-title="Biblioteca" data-sub="sua coleção local">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>Biblioteca</div>
+    <div class="nav" data-screen="wishlist" data-title="Wishlist" data-sub="o que você quer encontrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-6.5-4-9-8.2C1.4 9.2 2.8 5.5 6.2 5.5c2 0 3.2 1.3 3.8 2.3.6-1 1.8-2.3 3.8-2.3 3.4 0 4.8 3.7 3.2 6.8-2.5 4.2-9 8.2-9 8.2z" stroke-linejoin="round"/></svg>Wishlist</div>
+
+    <div class="sect">Sistema</div>
+    <div class="nav" data-screen="settings" data-title="Configurações" data-sub="providers, qualidade e agenda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.8M12 18.4v2.8M21.2 12h-2.8M5.6 12H2.8M18.5 5.5l-2 2M7.5 16.5l-2 2M18.5 18.5l-2-2M7.5 7.5l-2-2" stroke-linecap="round"/></svg>Configurações</div>
+
+    <div class="rail-foot">
+      <div class="st"><span class="dot ok"></span>Soulseek<span class="v">conectado</span></div>
+      <div class="st"><span class="dot ok"></span>Spotify<span class="v">vinculado</span></div>
+      <div class="st"><span class="dot warn"></span>Revisão<span class="v">2 falhas</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="title" id="title">Visão geral <small id="sub">o estado da sua operação</small></div>
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg><input placeholder="Buscar" /></label>
+      <button class="btn btn-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 12a8.5 8.5 0 0114.5-6M20.5 12a8.5 8.5 0 01-14.5 6" stroke-linecap="round"/><path d="M17.5 3v3.2h-3.2M6.5 21v-3.2h3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sincronizar tudo</button>
+    </div>
+    <section class="screen active" id="dashboard"></section>
+    <section class="screen" id="playlists"></section>
+    <section class="screen" id="downloads"></section>
+    <section class="screen" id="library"></section>
+    <section class="screen" id="wishlist"></section>
+    <section class="screen" id="settings"></section>
+  </main>
+</div>
+
+<script>
+/* ===== real album art via iTunes Search (JSONP) + gradient fallback ===== */
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
+function grad(seed){const h=hash(seed),a=h%360,b=(a+45+h%70)%360;
+  return `linear-gradient(140deg,hsl(${a} 52% 55%),hsl(${b} 48% 38%))`}
+function ini(s){return s.split(/[\s\-–—]+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+const coverCache={};
+function jsonp(url){return new Promise(res=>{
+  const cb='_cb'+Math.abs(hash(url))+Math.floor(performance.now());
+  const s=document.createElement('script');
+  window[cb]=d=>{res(d);delete window[cb];s.remove()};
+  s.onerror=()=>{res(null);delete window[cb];s.remove()};
+  s.src=url+'&callback='+cb;document.body.appendChild(s);
+  setTimeout(()=>{if(window[cb]){res(null);delete window[cb];s.remove&&s.remove()}},6000);
+})}
+function realCover(term){
+  if(coverCache[term])return coverCache[term];
+  coverCache[term]=jsonp('https://itunes.apple.com/search?limit=1&entity=album&term='+encodeURIComponent(term))
+    .then(d=>{const u=d&&d.results&&d.results[0]&&d.results[0].artworkUrl100;
+      return u?u.replace('100x100bb','600x600bb'):null}).catch(()=>null);
+  return coverCache[term];
+}
+/* cover element: gradient + initials now, real art hydrated async.
+   pass css (w/h/border-radius) to size it inline. */
+function cv(term,fs,css){return `<div class="cover" data-cover="${term.replace(/"/g,'')}" style="${css||''};background:${grad(term)}">
+  <span class="ini" style="font-size:${fs||20}px">${ini(term)}</span></div>`}
+function hydrate(){
+  document.querySelectorAll('.cover[data-cover]:not([data-h])').forEach(el=>{
+    el.setAttribute('data-h','1');
+    realCover(el.getAttribute('data-cover')).then(u=>{if(u){
+      const img=new Image();img.onload=()=>{el.style.backgroundImage=`url(${u})`;el.classList.add('loaded')};img.src=u;}});
+  });
+}
+
+/* ===== mock data ===== */
+const D={
+  stats:[
+    {ic:'list',c:'#0071e3',val:'6',lbl:'Playlists'},
+    {ic:'mic',c:'#f08400',val:'14',lbl:'Artistas monitorados'},
+    {ic:'dl',c:'#30b352',val:'3',lbl:'Downloads ativos'},
+    {ic:'note',c:'#8a5cf6',val:'1.284',lbl:'Faixas na biblioteca'},
+    {ic:'disk',c:'#5b6470',val:'312',u:'GB',lbl:'Espaço utilizado'},
+    {ic:'wave',c:'#e0457b',val:'87',u:'%',lbl:'Qualidade lossless'},
+  ],
+  downloads:[
+    {t:'Master of Puppets',a:'Metallica',q:'FLAC',peer:'audiophile_99',p:.62,spd:1.34},
+    {t:'Pull Me Under',a:'Dream Theater',q:'FLAC',peer:'progrock_hd',p:.28,spd:.91},
+    {t:'Comfortably Numb',a:'Pink Floyd',q:'320',peer:'floyd_vault',p:.84,spd:2.1},
+  ],
+  activity:[
+    {c:'#30b352',txt:'<b>Battery</b> · Metallica importada (FLAC)',tm:'há 2 min'},
+    {c:'#0071e3',txt:'Match selecionado para <b>One</b> · score 0,94',tm:'há 4 min'},
+    {c:'#30b352',txt:'Playlist <b>Prog Essentials</b> sincronizada · +3 faixas',tm:'há 18 min'},
+    {c:'#ff453a',txt:'<b>Echoes (Live)</b> sem fonte aceitável · na fila',tm:'há 31 min'},
+    {c:'#30b352',txt:'Capa baixada · <b>Images and Words</b>',tm:'há 44 min'},
+  ],
+  playlists:[
+    {nm:'Prog Essentials',cov:'Dream Theater Images and Words',n:142,sync:'há 18 min',st:'ok',done:1},
+    {nm:'Metal Classics',cov:'Metallica Master of Puppets',n:89,sync:'há 2 h',st:'ok',done:1},
+    {nm:'Sunday Jazz',cov:'Miles Davis Kind of Blue',n:64,sync:'sincronizando',st:'sync',done:.42},
+    {nm:'Rock Progressivo',cov:'Rush Moving Pictures',n:51,sync:'há 1 dia',st:'ok',done:.93},
+    {nm:'Synthwave Drive',cov:'The Midnight Endless Summer',n:73,sync:'há 5 h',st:'ok',done:1},
+    {nm:'Liked Songs',cov:'Pink Floyd The Dark Side of the Moon',n:418,sync:'há 3 h',st:'ok',done:.78},
+  ],
+  detail:[
+    {nm:'Pull Me Under',ar:'Dream Theater',dur:'8:14',st:'done',q:'FLAC',score:.97},
+    {nm:'Another Day',ar:'Dream Theater',dur:'4:23',st:'done',q:'FLAC',score:.95},
+    {nm:'Take the Time',ar:'Dream Theater',dur:'8:21',st:'dl',q:'FLAC',score:.92,p:.28},
+    {nm:'Surrounded',ar:'Dream Theater',dur:'5:29',st:'want',q:'—',score:null},
+    {nm:'Metropolis, Pt. 1',ar:'Dream Theater',dur:'9:32',st:'done',q:'FLAC',score:.99},
+    {nm:'Under a Glass Moon',ar:'Dream Theater',dur:'7:02',st:'fail',q:'—',score:.41},
+    {nm:'Wait for Sleep',ar:'Dream Theater',dur:'2:31',st:'done',q:'320',score:.88},
+    {nm:'Learning to Live',ar:'Dream Theater',dur:'11:30',st:'want',q:'—',score:null},
+  ],
+  albums:[
+    'Metallica Master of Puppets','Pink Floyd The Dark Side of the Moon','Dream Theater Images and Words',
+    'Rush Moving Pictures','Tool Lateralus','Opeth Blackwater Park','King Crimson In the Court of the Crimson King',
+    'Porcupine Tree In Absentia','Yes Close to the Edge','Genesis Selling England by the Pound',
+    'Steven Wilson Hand. Cannot. Erase.','Gojira Magma'],
+  artists:['Metallica','Pink Floyd','Dream Theater','Rush','Tool','Opeth','King Crimson','Porcupine Tree','Yes','Genesis','Steven Wilson','Gojira'],
+  wishlist:[
+    {type:'álbum',cov:'Dream Theater Images and Words',q:'Dream Theater — Images and Words',st:'resolvido · 8/8 faixas'},
+    {type:'faixa',cov:'Metallica And Justice for All',q:'Metallica — One',st:'baixada · FLAC'},
+    {type:'artista',cov:'Pink Floyd Wish You Were Here',q:'Pink Floyd',st:'monitorando · 14 álbuns'},
+    {type:'playlist',cov:'Yes Fragile',q:'Minha coleção de rock progressivo',st:'42 faixas na fila'},
+  ],
+};
+
+const qCls=q=>q==='FLAC'?'q-flac':q==='320'?'q-320':q==='V0'?'q-v0':'';
+const qLab=q=>q==='FLAC'?'FLAC':q==='320'?'MP3 320':q==='V0'?'MP3 V0':q;
+function dlRow(d,i){return `<div class="dl reveal" style="animation-delay:${i*55}ms">
+  ${cv(d.a+' '+d.t,16,'width:46px;height:46px;border-radius:9px')}
+  <div class="meta"><div class="t">${d.t}</div><div class="a">${d.a}</div>
+    <div class="prog-wrap"><div class="prog" data-i="${i}"><i style="width:${d.p*100}%"></i></div>
+    <span class="spd num" data-spd="${i}">${d.spd.toFixed(2)} MB/s</span></div></div>
+  <div class="right"><span class="qbadge ${qCls(d.q)}">${qLab(d.q)}</span><span class="prov">soulseek · ${d.peer}</span></div>
+</div>`}
+
+/* ===== renderers ===== */
+function rDashboard(){
+  const ic={list:'<path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round"/>',
+    mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3" stroke-linecap="round"/>',
+    dl:'<path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" stroke-linecap="round" stroke-linejoin="round"/>',
+    note:'<circle cx="7" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M10 18V5l11-2v13" stroke-linecap="round" stroke-linejoin="round"/>',
+    disk:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M16 4v4H8V4" stroke-linecap="round"/>',
+    wave:'<path d="M2 12h2l2-6 3 14 3-18 3 14 2-4h5" stroke-linecap="round" stroke-linejoin="round"/>'};
+  const stats=D.stats.map((s,i)=>`<div class="stat reveal" style="animation-delay:${i*45}ms">
+    <div class="ic" style="background:${s.c}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">${ic[s.ic]}</svg></div>
+    <div class="val num">${s.val}${s.u?`<span class="u">${s.u}</span>`:''}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+  document.getElementById('dashboard').innerHTML=`<div class="stat-grid">${stats}</div>
+    <div class="two-col">
+      <div class="panel reveal" style="animation-delay:.2s">
+        <div class="panel-h"><h3>Transferências ativas</h3><span class="cnt">3 em andamento</span><span class="link" data-goto="downloads">Ver todas</span></div>
+        <div class="panel-body">${D.downloads.map(dlRow).join('')}</div></div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="panel reveal" style="animation-delay:.28s"><div class="panel-h"><h3>Armazenamento</h3><span class="cnt">312 GB de 466 GB</span></div>
+          <div class="storage"><div class="bar">
+            <span style="width:46%;background:#30b352"></span><span style="width:14%;background:#0071e3"></span><span style="width:7%;background:#8a5cf6"></span></div>
+            <div class="legend">
+              <div class="l"><span class="sw" style="background:#30b352"></span>FLAC<b class="num">214 GB</b></div>
+              <div class="l"><span class="sw" style="background:#0071e3"></span>MP3 320<b class="num">68 GB</b></div>
+              <div class="l"><span class="sw" style="background:#8a5cf6"></span>Outros<b class="num">30 GB</b></div>
+              <div class="l"><span class="sw" style="background:#e3e3e8"></span>Livre<b class="num">154 GB</b></div>
+            </div></div></div>
+        <div class="panel reveal" style="animation-delay:.34s"><div class="panel-h"><h3>Atividade recente</h3></div>
+          <div class="feed">${D.activity.map(a=>`<div class="act"><span class="ad" style="background:${a.c}"></span>
+            <div><div class="txt">${a.txt}</div><div class="tm">${a.tm}</div></div></div>`).join('')}</div></div>
+      </div></div>`;
+  hydrate();
+}
+function rPlaylists(){
+  const cards=D.playlists.map((p,i)=>`<div class="tile reveal" data-goto="pdetail" style="animation-delay:${i*45}ms">
+    <div style="position:relative">${cv(p.cov,30,'width:100%;aspect-ratio:1;border-radius:14px')}
+      <span class="pill">${p.st==='sync'?'<span class="dot warn"></span>sync':'<span class="dot ok"></span>ok'}</span></div>
+    <div class="nm">${p.nm}</div><div class="info"><span>${p.n} faixas</span><span class="sync">${p.sync}</span></div>
+    <div class="minibar"><i style="width:${p.done*100}%"></i></div></div>`).join('');
+  document.getElementById('playlists').innerHTML=`
+    <div class="import reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="txt"><div class="h">Importar playlist</div><div class="d">Cole uma URL pública do Spotify ou sincronize suas playlists privadas pela conta vinculada.</div></div>
+      <input class="input" style="width:300px" placeholder="https://open.spotify.com/playlist/…"><button class="btn btn-blue">Importar</button></div>
+    <div class="sect-h"><h2>Suas playlists</h2><span class="meta">6 sincronizadas</span></div>
+    <div class="grid">${cards}</div>`;
+  hydrate();
+}
+function rPDetail(){
+  const rows=D.detail.map((t,i)=>{const m={done:['st-done','Importada'],dl:['st-dl','Baixando'],want:['st-want','Na fila'],fail:['st-fail','Falhou']};const[cls,lab]=m[t.st];
+    return `<div class="trow"><span class="idx num">${i+1}</span>
+      ${cv(t.ar+' '+t.nm,14,'width:40px;height:40px;border-radius:8px')}
+      <div style="min-width:0"><div class="nm">${t.nm}</div><div class="ar">${t.ar}</div></div>
+      <span class="st ${cls}"><span class="d"></span>${lab}${t.st==='dl'?` · ${Math.round(t.p*100)}%`:''}</span>
+      ${t.q!=='—'?`<span class="qbadge ${qCls(t.q)}">${qLab(t.q)}</span>`:'<span style="color:var(--text-4)">—</span>'}
+      <span class="dur num">${t.score!==null?`<span class="score">score <b>${t.score.toFixed(2)}</b></span>`:''} &nbsp;${t.dur}</span></div>`}).join('');
+  document.getElementById('playlists').innerHTML=`
+    <div class="dhead reveal">${cv('Dream Theater Images and Words',42,'width:150px;height:150px;border-radius:18px')}
+      <div><div class="kicker">Playlist · Spotify · sync automático</div><div class="h">Prog Essentials</div>
+        <div class="sub num">142 faixas · 124 na biblioteca · 1 baixando · 17 na fila</div>
+        <div class="actions"><button class="btn btn-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 12a8.5 8.5 0 0114.5-6M20.5 12a8.5 8.5 0 01-14.5 6M17.5 3v3.2h-3.2M6.5 21v-3.2h3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sincronizar agora</button>
+          <button class="btn btn-soft">Editar</button><button class="btn btn-soft" data-goto="playlists">← Voltar</button></div></div></div>
+    <div class="tlist reveal" style="animation-delay:.1s">
+      <div class="trow head"><span>#</span><span></span><span>Faixa</span><span>Status</span><span>Qualidade</span><span style="text-align:right">Score · Duração</span></div>${rows}</div>`;
+  hydrate();
+}
+function rDownloads(){
+  const all=[...D.downloads,
+    {t:'One',a:'Metallica',q:'FLAC',peer:'metal_archive',p:1,spd:0,done:1},
+    {t:'Battery',a:'Metallica',q:'FLAC',peer:'thrash_hd',p:1,spd:0,done:1},
+    {t:'Echoes (Live)',a:'Pink Floyd',q:'—',peer:'—',p:0,spd:0,fail:1}];
+  const rows=all.map((d,i)=>{let badge,prog;
+    if(d.done){badge='<span class="st st-done"><span class="d"></span>Concluído</span>';prog='<div class="prog green"><i style="width:100%"></i></div>';}
+    else if(d.fail){badge='<span class="st st-fail"><span class="d"></span>Sem fonte</span>';prog='<div class="prog"><i style="width:0"></i></div>';}
+    else{badge='<span class="st st-dl"><span class="d"></span>Baixando</span>';prog=`<div class="prog" data-i="${i}"><i style="width:${d.p*100}%"></i></div>`;}
+    return `<div class="trow reveal" style="grid-template-columns:40px 1fr 150px 100px 92px;animation-delay:${i*40}ms">
+      ${cv(d.a+' '+d.t,14,'width:40px;height:40px;border-radius:8px')}
+      <div style="min-width:0"><div class="nm">${d.t}</div><div class="ar">${d.a} · <span style="color:var(--text-3)">soulseek/${d.peer}</span></div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:10px">${prog}<span class="spd num" data-spd="${i}">${d.done||d.fail?'—':d.spd.toFixed(2)+' MB/s'}</span></div></div>
+      <div>${badge}</div><div>${d.q!=='—'?`<span class="qbadge ${qCls(d.q)}">${qLab(d.q)}</span>`:'<span style="color:var(--text-4)">—</span>'}</div>
+      <div class="num" style="text-align:right;font-size:12px;color:var(--text-2)">${d.done?'24.3 MB':d.fail?'retry':Math.round(d.p*38)+' MB'}</div></div>`}).join('');
+  document.getElementById('downloads').innerHTML=`
+    <div class="sect-h"><h2>Transferências</h2><span class="meta">3 ativas · 2 concluídas · 1 falha</span></div>
+    <div class="tlist">${rows}</div>
+    <div class="sect-h"><h2>Log ao vivo</h2></div><div class="log" id="log"></div>`;
+  buildLog();hydrate();
+}
+function rLibrary(){
+  const albums=D.albums.map((a,i)=>{const[ar,...t]=a.split(' ');const title=a.replace(ar+' ','');
+    return `<div class="tile reveal" style="animation-delay:${i*30}ms">${cv(a,28,'width:100%;aspect-ratio:1;border-radius:14px')}
+      <div class="nm">${title}</div><div class="info"><span>${a.split(' ')[0]}</span></div></div>`}).join('');
+  const artists=D.artists.map((a,i)=>`<div class="artist reveal" style="animation-delay:${i*28}ms">
+    ${cv(a,26,'width:100%;aspect-ratio:1;border-radius:50%')}
+    <div class="nm">${a}</div><div class="ct num">${4+hash(a)%9} álbuns</div></div>`).join('');
+  document.getElementById('library').innerHTML=`
+    <div class="sect-h"><h2>Álbuns</h2><span class="meta num">1.284 faixas · 312 GB · 87% lossless</span></div>
+    <div class="grid">${albums}</div>
+    <div class="sect-h"><h2>Artistas</h2></div><div class="lib-grid">${artists}</div>`;
+  hydrate();
+}
+let wishType='faixa';
+function rWishlist(){
+  const items=D.wishlist.map(w=>`<div class="witem reveal">
+    ${cv(w.cov,16,'width:40px;height:40px;border-radius:9px')}
+    <span class="wtype">${w.type}</span><span class="q">${w.q}</span><span class="stt">${w.st}</span></div>`).join('');
+  const ph={faixa:'Metallica — One',['álbum']:'Dream Theater — Images and Words',artista:'Pink Floyd',playlist:'Minha coleção de rock progressivo'}[wishType];
+  document.getElementById('wishlist').innerHTML=`
+    <div class="wish-form reveal"><div class="seg" id="wseg">
+      ${['faixa','álbum','artista','playlist'].map(t=>`<button class="${t===wishType?'on':''}" data-t="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div>
+      <input class="input" style="flex:1;min-width:240px" placeholder="${ph}"><button class="btn btn-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Adicionar</button></div>
+    <div class="sect-h"><h2>Procurando</h2><span class="meta">${D.wishlist.length} itens</span></div>
+    <div class="wish-list">${items}</div>`;
+  document.querySelectorAll('#wseg button').forEach(b=>b.onclick=()=>{wishType=b.dataset.t;rWishlist();});
+  hydrate();
+}
+function rSettings(){
+  const qc=['FLAC','MP3 320','MP3 V0','MP3 256','MP3 192'];
+  document.getElementById('settings').innerHTML=`
+    <div class="spotify-card reveal"><div class="logo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm4.5 14.4a.6.6 0 01-.86.2c-2.35-1.43-5.3-1.76-8.79-.96a.62.62 0 11-.28-1.2c3.82-.88 7.1-.5 9.73 1.1.3.18.4.57.2.86zm1.2-2.7a.78.78 0 01-1.07.26c-2.69-1.65-6.79-2.13-9.97-1.17a.78.78 0 11-.45-1.49c3.63-1.1 8.15-.56 11.23 1.33.37.22.49.7.26 1.07zm.1-2.8C14.5 8.95 9.4 8.76 6.5 9.64a.93.93 0 11-.54-1.78c3.33-1.01 8.96-.81 12.49 1.28a.93.93 0 11-.95 1.6z"/></svg></div>
+      <div class="info"><div class="h">Spotify vinculado</div><div class="d">Conta <span class="u">thiagobucca</span> · uso pessoal · leitura de playlists</div></div><button class="btn btn-soft">Desvincular</button></div>
+    <div class="set-grid">
+      <div class="panel reveal"><div class="panel-h"><h3>Qualidade</h3></div><div style="padding:4px 18px 16px">
+        <div class="set-row"><div class="k">Ordem de preferência<small>melhor formato disponível primeiro</small></div></div>
+        <div class="qchain">${qc.map((q,i)=>`<span class="qc"><span class="n num">${i+1}</span>${q}</span>`).join('')}</div>
+        <div class="set-row"><div class="k">Qualidade mínima<small>abaixo disso, não baixa</small></div><select class="select"><option>MP3 192</option><option>MP3 256</option><option selected>MP3 320</option><option>FLAC</option></select></div>
+        <div class="set-row"><div class="k">Auto-aceitar match<small>score mínimo para baixar sem revisão</small></div><span class="num" style="color:var(--blue);font-weight:600">0.85</span></div></div></div>
+      <div class="panel reveal" style="animation-delay:.08s"><div class="panel-h"><h3>Providers</h3></div><div style="padding:14px 18px 16px">
+        <div class="prio"><div class="p"><span class="num">1</span><span class="dot ok"></span>Soulseek<span style="color:var(--text-3);font-size:11px;margin-left:5px">slskd</span><span class="gr">⋮⋮</span></div>
+          <div class="p" style="opacity:.5"><span class="num">2</span><span class="dot off"></span>Lidarr<span style="color:var(--text-3);font-size:11px;margin-left:5px">em breve</span><span class="gr">⋮⋮</span></div></div>
+        <div class="set-row" style="margin-top:8px"><div class="k">Downloads simultâneos<small>otimizado para Raspberry Pi</small></div><select class="select"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div></div>
+      <div class="panel reveal" style="animation-delay:.12s"><div class="panel-h"><h3>Biblioteca</h3></div><div style="padding:4px 18px 16px">
+        <div class="set-row"><div class="k">Pasta da biblioteca</div><span class="num" style="font-size:12.5px;color:var(--text-2)">/music</span></div>
+        <div class="set-row"><div class="k">Organizar automaticamente<small>renomear + tags + capa</small></div><div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div></div>
+        <div class="set-row"><div class="k">Deduplicar arquivos</div><div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div></div>
+        <div class="set-row"><div class="k">Compartilhar /music no Soulseek<small>desligado por padrão (uso pessoal)</small></div><div class="toggle" onclick="this.classList.toggle('on')"><i></i></div></div></div></div>
+      <div class="panel reveal" style="animation-delay:.16s"><div class="panel-h"><h3>Agendamento</h3></div><div style="padding:4px 18px 16px">
+        <div class="set-row"><div class="k">Sincronização automática<small>verificar playlists periodicamente</small></div><div class="toggle on" onclick="this.classList.toggle('on')"><i></i></div></div>
+        <div class="set-row"><div class="k">Intervalo</div><select class="select"><option>30 min</option><option selected>1 hora</option><option>6 horas</option><option>diário</option></select></div>
+        <div class="set-row"><div class="k">Modo econômico (RPi)<small>limita CPU/IO em horários definidos</small></div><div class="toggle" onclick="this.classList.toggle('on')"><i></i></div></div></div></div>
+    </div>`;
+}
+
+/* live log */
+let logTimer;const LOGS=[
+  '[slskd] busca "metallica master of puppets" → 47 respostas',
+  '[match] escolhido audiophile_99/Master of Puppets.flac · score 0.96',
+  '[slskd] transfer iniciado · audiophile_99 · 24.1 MB',
+  '[dl] Master of Puppets ······ 62% · 1.34 MB/s',
+  '[organize] tags FLAC gravadas · capa 1200×1200 embutida',
+  '[lib] → /music/Metallica/Master of Puppets/01 Battery.flac',
+  '[spotify] snapshot inalterado · Prog Essentials · no-op',
+  '[slskd] busca "pink floyd echoes live" → 0 fontes ≥ MP3 320'];
+function paint(l){return l.replace(/\[(\w+)\]/,'<span style="color:var(--blue)">[$1]</span>')
+  .replace(/(\d+%|\d+\.\d+ MB\/s|score \d\.\d+|\d+ respostas)/g,'<span style="color:var(--green)">$1</span>')
+  .replace(/(0 fontes)/,'<span style="color:var(--red)">$1</span>')}
+function buildLog(){const el=document.getElementById('log');if(!el)return;
+  let lines=LOGS.slice(0,5).map(l=>`<div>${paint(l)}</div>`);el.innerHTML=lines.join('');let n=5;
+  clearInterval(logTimer);logTimer=setInterval(()=>{if(!document.getElementById('log')){clearInterval(logTimer);return;}
+    lines.push(`<div>${paint(LOGS[n%LOGS.length])}</div>`);if(lines.length>9)lines.shift();el.innerHTML=lines.join('');n++},1900)}
+
+/* live progress */
+setInterval(()=>{document.querySelectorAll('.prog[data-i]').forEach(p=>{const bar=p.querySelector('i');let w=parseFloat(bar.style.width);
+  if(w<100){w=Math.min(100,w+Math.random()*2);bar.style.width=w+'%'}
+  const s=document.querySelector(`.spd[data-spd="${p.dataset.i}"]`);if(s&&!s.textContent.includes('—'))s.textContent=(0.7+Math.random()*1.8).toFixed(2)+' MB/s'})},900);
+
+/* router */
+const R={dashboard:rDashboard,playlists:rPlaylists,downloads:rDownloads,library:rLibrary,wishlist:rWishlist,settings:rSettings,pdetail:rPDetail};
+function go(scr,title,sub){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const tgt=scr==='pdetail'?'playlists':scr;document.getElementById(tgt).classList.add('active');R[scr]&&R[scr]();
+  if(title){document.getElementById('title').childNodes[0].nodeValue=title+' ';document.getElementById('sub').textContent=sub||''}
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.screen===tgt));}
+document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.screen,n.dataset.title,n.dataset.sub));
+document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(!g)return;
+  const m={downloads:['Downloads','transferências em tempo real'],playlists:['Playlists','sincronizadas do Spotify'],pdetail:['Prog Essentials','playlist · 142 faixas']};
+  go(g.dataset.goto,m[g.dataset.goto]?.[0],m[g.dataset.goto]?.[1]);});
+rDashboard();
+</script>
+</body>
+</html>

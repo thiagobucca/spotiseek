@@ -1,0 +1,224 @@
+// Spotiseek — SQLite (ultraleve, single-file, sem servidor de DB).
+// Enums viram String (SQLite não tem enums no Prisma); campos JSON viram String
+// serializado. binaryTargets cobrem amd64/arm64 (glibc e musl/Alpine) p/ Docker + RPi.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  spotifyAuth  String? // JSON cifrado: { accessToken, refreshToken, expiresAt, account, scopes }
+  createdAt    DateTime @default(now())
+}
+
+model Artist {
+  id        String   @id @default(cuid())
+  name      String
+  nameNorm  String
+  spotifyId String?  @unique
+  mbid      String?  @unique
+  imageUrl  String?
+  monitored Boolean  @default(false)
+  createdAt DateTime @default(now())
+  albums    Album[]
+  tracks    Track[]
+
+  @@index([nameNorm])
+}
+
+model Album {
+  id        String   @id @default(cuid())
+  title     String
+  titleNorm String
+  spotifyId String?  @unique
+  mbid      String?
+  year      Int?
+  coverUrl  String?
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id])
+  tracks    Track[]
+  createdAt DateTime @default(now())
+
+  @@index([titleNorm])
+}
+
+model Track {
+  id          String  @id @default(cuid())
+  title       String
+  titleNorm   String
+  artistId    String
+  artist      Artist  @relation(fields: [artistId], references: [id])
+  albumId     String?
+  album       Album?  @relation(fields: [albumId], references: [id])
+  spotifyId   String? @unique
+  isrc        String?
+  durationMs  Int?
+  trackNumber Int?
+  discNumber  Int?
+  popularity  Int?
+  status      String  @default("WANTED") // TrackStatus
+  source      String // TrackSource
+  coverUrl    String?
+
+  libraryFile LibraryFile?
+  candidates  MatchCandidate[]
+  downloads   DownloadJob[]
+  playlists   PlaylistTrack[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([artistId, titleNorm, albumId])
+  @@index([isrc])
+  @@index([status])
+}
+
+model Playlist {
+  id           String          @id @default(cuid())
+  spotifyId    String?         @unique
+  name         String
+  isPublic     Boolean         @default(true)
+  coverUrl     String?
+  snapshotId   String?
+  syncMode     String          @default("MANUAL") // SyncMode
+  syncCron     String?
+  lastSyncedAt DateTime?
+  status       String          @default("IDLE") // PlaylistStatus
+  tracks       PlaylistTrack[]
+  createdAt    DateTime        @default(now())
+}
+
+model PlaylistTrack {
+  playlistId String
+  trackId    String
+  position   Int?
+  addedAt    DateTime @default(now())
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id])
+
+  @@id([playlistId, trackId])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  type      String // WishlistType
+  query     String
+  resolved  String? // JSON
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model Provider {
+  id        String        @id @default(cuid())
+  key       String        @unique
+  name      String
+  enabled   Boolean       @default(true)
+  priority  Int           @default(100)
+  config    String? // JSON
+  healthy   Boolean       @default(false)
+  lastCheck DateTime?
+  downloads DownloadJob[]
+}
+
+model MatchCandidate {
+  id             String   @id @default(cuid())
+  trackId        String
+  track          Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  providerKey    String
+  raw            String? // JSON
+  filename       String
+  username       String
+  format         String?
+  bitrate        Int?
+  sizeBytes      Int      @default(0)
+  score          Float
+  scoreBreakdown String // JSON
+  chosen         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([trackId, score])
+}
+
+model DownloadJob {
+  id          String    @id @default(cuid())
+  trackId     String
+  track       Track     @relation(fields: [trackId], references: [id])
+  providerId  String
+  provider    Provider  @relation(fields: [providerId], references: [id])
+  candidateId String?
+  externalRef String? // JSON { username, filename }
+  peer        String?
+  quality     String? // QualityTier
+  state       String    @default("QUEUED") // DownloadState
+  progress    Float     @default(0)
+  speedBps    Int?
+  bytesDone   Int       @default(0)
+  bytesTotal  Int?
+  attempts    Int       @default(0)
+  error       String?
+  filePath    String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([state])
+}
+
+model LibraryFile {
+  id         String   @id @default(cuid())
+  trackId    String   @unique
+  track      Track    @relation(fields: [trackId], references: [id])
+  path       String   @unique
+  format     String
+  bitrate    Int?
+  sizeBytes  Int      @default(0)
+  sampleRate Int?
+  hash       String?
+  tagged     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([hash])
+}
+
+model Setting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
+
+model Job {
+  id        String    @id @default(cuid())
+  queue     String
+  data      String // JSON payload
+  state     String    @default("WAITING") // JobState
+  attempts  Int       @default(0)
+  maxAttempts Int     @default(3)
+  priority  Int       @default(0)
+  runAt     DateTime  @default(now())
+  error     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([queue, state, runAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  level     String   @default("info")
+  scope     String
+  message   String
+  meta      String? // JSON
+  createdAt DateTime @default(now())
+
+  @@index([scope, createdAt])
+  @@index([createdAt])
+}

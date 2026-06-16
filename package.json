@@ -1,0 +1,21 @@
+{
+  "name": "spotiseek",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted Spotify → Soulseek music sync, optimized for Raspberry Pi",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @spotiseek/shared && npm run build -w @spotiseek/web && npm run build -w @spotiseek/api",
+    "build:shared": "npm run build -w @spotiseek/shared",
+    "dev:api": "npm run dev -w @spotiseek/api",
+    "dev:web": "npm run dev -w @spotiseek/web",
+    "prisma:generate": "npm run prisma:generate -w @spotiseek/api",
+    "prisma:migrate": "npm run prisma:migrate -w @spotiseek/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

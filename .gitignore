@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.svelte-kit/
+*.tsbuildinfo
+.env
+.env.local
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+downloads/
+music/
+.DS_Store
+
+# UI estática copiada no build (gerada pelo Docker / dev)
+apps/api/public/

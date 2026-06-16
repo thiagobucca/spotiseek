@@ -1,0 +1,32 @@
+# slskd.yml — configuração do cliente Soulseek headless (montado read-only no container).
+#
+# IMPORTANTE: o slskd NÃO expande ${VAR} dentro deste YAML. Por isso:
+#  - Usuário/senha do Soulseek vêm das variáveis de ambiente nativas do slskd
+#    (SLSKD_SLSK_USERNAME / SLSKD_SLSK_PASSWORD), definidas no .env e repassadas pelo compose.
+#    NÃO os coloque aqui (ficariam literais).
+#  - A REST API (porta 5030) fica SOMENTE na rede interna do compose — a porta não é
+#    publicada no host. Apenas o container `app` a alcança (http://slskd:5030). Por isso a
+#    autenticação da API é desabilitada: o isolamento de rede é a fronteira de segurança.
+
+web:
+  authentication:
+    disabled: true
+
+soulseek:
+  # username/password vêm de SLSKD_SLSK_USERNAME / SLSKD_SLSK_PASSWORD (env).
+  listen_port: 50300                     # porta de escuta P2P (uploads/ratio); publicada no host.
+
+directories:
+  downloads: /downloads                  # volume compartilhado com o app (downloads completos)
+  incomplete: /incomplete                # volume próprio do slskd (parciais)
+
+# ---------------------------------------------------------------------------------------------
+# COMPARTILHAMENTO DESABILITADO POR PADRÃO (decisão do operador).
+# Para uso pessoal de baixa intensidade é aceitável, mas a etiqueta da rede Soulseek valoriza
+# quem compartilha de volta (ver docs/09). Para ATIVAR depois (melhor reputação/disponibilidade):
+#   1) monte a biblioteca read-only no slskd:  music-library:/music:ro  (no docker-compose.yml)
+#   2) troque o bloco abaixo por:  shares: { directories: [ /music ] }
+#   3) garanta port-forward/UPnP da porta 50300 se atrás de NAT.
+# ---------------------------------------------------------------------------------------------
+shares:
+  directories: []
